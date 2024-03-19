@@ -76,18 +76,6 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   return false;
 };
 
-// userSchema.methods.createPasswordResetToken = function () {
-//   const resetToken = crypto.randomBytes(32).toString('hex');
-
-//   this.passwordResetToken = crypto
-//     .createHash('sha512')
-//     .update(resetToken)
-//     .digest('hex');
-//   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-//   return resetToken;
-// };
-
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(36).toString('hex');
 
