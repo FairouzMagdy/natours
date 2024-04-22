@@ -1,5 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const AppError = require('./utils/appError');
@@ -7,13 +8,22 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
 
-// Middleware
+// Global Middleware
 
 app.use(express.json());
+app.use(express.static(`${__dirname}/public`));
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000, // 100 requests in an hour
+  message: 'Too many requests! Try again in an hour.',
+});
+
+app.use('/api', limiter); // It's used with every route that starts with /api
 
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
