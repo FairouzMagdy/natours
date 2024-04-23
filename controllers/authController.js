@@ -38,10 +38,113 @@ exports.signup = catchAsync(async (req, res, next) => {
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
-    passwordChangedAt: req.body.passwordChangedAt,
   });
 
-  createSendToken(newUser, 201, res);
+  const verifyEmailToken = newUser.createEmailVerificationToken();
+  await newUser.save({ validateBeforeSave: false });
+
+  try {
+    const verificationURL = `${req.protocol}://${req.get(
+      'host',
+    )}/api/v1/users/verifyEmail/${verifyEmailToken}`;
+    const message = `Welcome to our application! Please verify your email address by clicking the following link: ${verificationURL}`;
+    await sendEmail({
+      email: newUser.email,
+      subject: 'Verify your email address',
+      message,
+    });
+
+    await newUser.save({ validateBeforeSave: false });
+    newUser.emailVerificationToken = undefined;
+    newUser.verificationTokenExpires = undefined;
+    createSendToken(newUser, 201, res);
+  } catch (err) {
+    // If there's an error sending the email, handle it
+    newUser.emailVerificationToken = undefined;
+    newUser.verificationTokenExpires = undefined;
+    await newUser.save({ validateBeforeSave: false });
+    return next(
+      new AppError(
+        'There was an error sending the verification email. Try again later!',
+        500,
+      ),
+    );
+  }
+});
+
+exports.resendVerificationEmail = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user || user.emailVerified) {
+    return next(
+      new AppError('User not found or email is already verified.', 400),
+    );
+  }
+
+  const verifyEmailToken = user.createEmailVerificationToken();
+  await user.save({ validateBeforeSave: false });
+
+  try {
+    const verificationURL = `${req.protocol}://${req.get(
+      'host',
+    )}/api/v1/users/verifyEmail/${verifyEmailToken}`;
+    const message = `Welcome back! Please verify your email address by clicking the following link: ${verificationURL}`;
+    await sendEmail({
+      email: user.email,
+      subject: 'Resend Verification Email',
+      message,
+    });
+    user.emailVerificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    res.status(200).json({
+      status: 'success',
+      message: 'Verification email resent successfully.',
+    });
+  } catch (err) {
+    user.emailVerificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    return next(
+      new AppError(
+        'There was an error sending the verification email. Try again later!',
+        500,
+      ),
+    );
+  }
+});
+
+exports.verifyEmail = catchAsync(async (req, res, next) => {
+  // Get the verification token from the URL
+  const token = req.params.token;
+
+  // Find the user by the verification token
+  const user = await User.findOne({
+    emailVerificationToken: token,
+    verificationTokenExpires: { $gt: Date.now() },
+  });
+  // If user not found or token has expired
+  if (!user) {
+    return next(
+      new AppError('Verification token is invalid or has expired.', 400),
+    );
+  }
+  // If the user is already verified, return a message indicating that
+  if (user.emailVerified) {
+    return res.status(200).json({
+      status: 'success',
+      message: 'Your email address has already been verified. You can log in.',
+    });
+  }
+  // Mark user as email verified
+  user.emailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.verificationTokenExpires = undefined;
+  await user.save({ validateBeforeSave: false });
+  // Send response indicating successful email verification
+  res.status(200).json({
+    status: 'success',
+    message: 'Email verification successful. You can now log in.',
+  });
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -88,7 +191,17 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 4) Check if user changed password after token was issued
+  // 4) Check if email is verified
+  if (!currentUser.emailVerified) {
+    return next(
+      new AppError(
+        'Please verify your email address to access this resource.',
+        401,
+      ),
+    );
+  }
+
+  // 5) Check if user changed password after token was issued
   if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
       new AppError('User recently changed password. Please log in again.'),
@@ -120,7 +233,6 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError('No user was found with this email.', 404));
   }
-  console.log(user);
   // Generate reset password token
   const resetToken = user.createPasswordResetToken();
   user.save({ validateBeforeSave: false });

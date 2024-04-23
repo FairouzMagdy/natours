@@ -45,12 +45,17 @@ const userSchema = mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
-  emailVerificationToken: String,
-  verificationTokenExpires: Date,
+  emailVerificationToken: {
+    type: String,
+    select: false,
+  },
+  verificationTokenExpires: {
+    type: Date,
+    select: false,
+  },
   emailVerified: {
     type: Boolean,
     default: false,
-    // select: false,
   },
   active: {
     type: Boolean,
@@ -110,7 +115,7 @@ userSchema.methods.createPasswordResetToken = function () {
 userSchema.methods.createEmailVerificationToken = function () {
   const verificationToken = crypto.randomBytes(32).toString('hex');
 
-  this.verificationToken = verificationToken;
+  this.emailVerificationToken = verificationToken;
 
   this.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // Expires in 24 hours
 
