@@ -4,7 +4,10 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 
 exports.getAllReviews = catchAsync(async (req, res, next) => {
-  const reviews = await Review.find();
+  let filter = {};
+  if (req.params.tourID) filter = { tour: req.params.tourID };
+
+  const reviews = await Review.find(filter);
   if (!reviews) {
     return next(new AppError('No reviews yet.', 404));
   }
@@ -26,6 +29,8 @@ exports.getReviewByID = catchAsync(async (req, res, next) => {
 });
 
 exports.createReview = catchAsync(async (req, res, next) => {
+  if (!req.body.tour) req.body.tour = req.params.tourID;
+
   const review = await Review.create({
     review: req.body.review,
     rating: req.body.rating,
