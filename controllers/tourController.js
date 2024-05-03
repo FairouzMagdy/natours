@@ -34,9 +34,6 @@ exports.tourStats = catchAsync(async (req, res, next) => {
     {
       $sort: { avgPrice: 1 }, // 1 for ascending
     },
-    // {
-    //   $match: { _id: { $ne: 'EASY' } },
-    // },
   ]);
 
   res.status(200).json({
