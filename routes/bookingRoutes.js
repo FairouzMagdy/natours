@@ -9,7 +9,7 @@ router.use(authController.protect);
 
 router.get('/checkoutSession/:tourID', bookingController.getCheckoutSession);
 
-router.get('/myBookings', authController.protect, bookingController.myBookings);
+router.get('/myBookings', bookingController.myBookings);
 router.get(
   '/tempBookingMethod',
   bookingController.createBookingCheckout,
