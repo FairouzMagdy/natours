@@ -10,7 +10,7 @@ This project is a comprehensive tour management system developed using Node.js, 
 
 ## Features
 
-- **Authentication and Authorization**: Users can sign up, log in, log out, update their information, reset their password and verify their email. Different user roles are supported: regular user, admin, lead guide, and guide..
+- **Authentication and Authorization**: Users can sign up, log in, update their information, reset their password and verify their email. Different user roles are supported: regular user, admin, lead guide, and guide..
 - **User Profiles**: Users can update their profile details including username, photo, email, and password.
 - **Tour Management**: Admin users or lead guides can create, update, and delete tours. Users can view tour details, book tours, and check reviews and ratings.
 - **Booking Functionality**: Only regular users can book tours, and they cannot book the same tour twice. Admin users or lead guides have access to all bookings and can create, edit, or delete bookings.
